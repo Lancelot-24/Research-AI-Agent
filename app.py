@@ -61,7 +61,7 @@ def scrape_website(objective: str, url: str):
     
     # Send the POST request
     post_url = f"https://chrome.browserless.io/content?token={browserless_api_key}"
-    response = requests.post(post_url, headers=headers, data=data.json)
+    response = requests.post(post_url, headers=headers, data=data_json)
     
     # Check the response status code
     if response.status_code == 200:
@@ -72,7 +72,7 @@ def scrape_website(objective: str, url: str):
         if(len(text) > 10000):
             print("Content is too large, summarizing...")
             output = summary(objective, text)
-            return summary_content
+            return output
         else:
             return text
     else:
@@ -96,34 +96,28 @@ class ScrapeWebsiteTool(BaseTool):
     
 def summary(objective, content):
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
-    
+
     text_splitter = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500
-        )
-    
+        separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500)
     docs = text_splitter.create_documents([content])
-   
     map_prompt = """
     Write a summary of the following text for {objective}:
-    "{text}}"
+    "{text}"
     SUMMARY:
     """
-    
     map_prompt_template = PromptTemplate(
-        template = map_prompt, input_variables=["text", "objectives"]
-        )
-    
+        template=map_prompt, input_variables=["text", "objective"])
+
     summary_chain = load_summarize_chain(
         llm=llm,
         chain_type='map_reduce',
         map_prompt=map_prompt_template,
         combine_prompt=map_prompt_template,
         verbose=True
-        
     )
-    
+
     output = summary_chain.run(input_documents=docs, objective=objective)
-    
+
     return output
 
 # 3. Create langchain agent with the tools above
@@ -167,5 +161,5 @@ agent = initialize_agent(
     memory=memory,
 )
 
-result = agent({"input": "Is there market demand for a homework helper AI bot that can read text from the camera live"})
-print(result['output'])
+#result = agent({"input": "What is the current state of the finacial markets, including the job market? Give as much specific detail as to why the market is in the current state it is in, including data on rates and other statistics."})
+#print(result['output'])
